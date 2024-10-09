@@ -44,18 +44,18 @@ INSERT INTO products (product_id, name, image, description, price, stock, catego
 
 
 
--- Orders
-INSERT INTO orders (order_id, status, total_price, total_items, is_paid, user_id) VALUES
-(default, 'PENDING', 19.99, 1, true, 1),
-(default, 'PENDING', 89.99, 5, true, 2);
+-- -- Orders
+-- INSERT INTO orders (order_id, status, total_price, total_items, is_paid, user_id) VALUES
+-- (default, 'PENDING', 19.99, 1, true, 1),
+-- (default, 'PENDING', 89.99, 5, true, 2);
 
 
---  OrderItems
-INSERT INTO order_items (order_item_id, quantity, order_id, product_id)
-VALUES (default, 2, 1, 1);
-INSERT INTO order_items (order_item_id, quantity, order_id, product_id)
-VALUES (default, 3, 1, 1);
+-- --  OrderItems
+-- INSERT INTO order_items (order_item_id, quantity, order_id, product_id)
+-- VALUES (default, 2, 1, 1);
+-- INSERT INTO order_items (order_item_id, quantity, order_id, product_id)
+-- VALUES (default, 3, 1, 1);
 
 -- Reviews
-INSERT INTO reviews (review_id, rating, order_item_id, user_id) VALUES (default, 5, 1, 1);
-INSERT INTO reviews (review_id, rating, order_item_id, user_id) VALUES (default, 4, 2, 1);
+-- INSERT INTO reviews (review_id, rating, order_item_id, user_id) VALUES (default, 5, 1, 1);
+-- INSERT INTO reviews (review_id, rating, order_item_id, user_id) VALUES (default, 4, 2, 1);

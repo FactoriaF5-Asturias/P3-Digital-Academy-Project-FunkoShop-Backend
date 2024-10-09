@@ -1,5 +1,7 @@
 package org.factoriaf5.digital_academy.funko_shop.order;
 
+import org.factoriaf5.digital_academy.funko_shop.category.Category;
+import org.factoriaf5.digital_academy.funko_shop.category.CategoryDTO;
 import org.factoriaf5.digital_academy.funko_shop.order.order_exceptions.OrderNotFoundException;
 import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItem;
 import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItemDTO;
@@ -13,10 +15,11 @@ import org.factoriaf5.digital_academy.funko_shop.tracking.Tracking;
 import org.factoriaf5.digital_academy.funko_shop.tracking.TrackingDTO;
 import org.factoriaf5.digital_academy.funko_shop.tracking.TrackingRepository;
 import org.factoriaf5.digital_academy.funko_shop.user.User;
-import org.factoriaf5.digital_academy.funko_shop.user.UserDTO;
 import org.factoriaf5.digital_academy.funko_shop.user.UserRepository;
 import org.factoriaf5.digital_academy.funko_shop.user.user_exceptions.UserNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -40,9 +43,9 @@ public class OrderService {
     @Autowired
     private TrackingRepository trackingRepository;
 
-    public OrderDTO addOrder(OrderDTO orderDTO) {
-        User user = userRepository.findById(orderDTO.getUser().getId())
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + orderDTO.getUser().getId()));
+    public OrderDTO addOrder(OrderDTO orderDTO, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
         Order order = new Order();
         order.setStatus(orderDTO.getStatus());
@@ -100,10 +103,9 @@ public class OrderService {
         return mapToDTO(orderRepository.save(order));
     }
 
-    public List<OrderDTO> getAllOrders() {
-        return orderRepository.findAll().stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public Page<OrderDTO> getAllOrders(Pageable pageable) {
+        return orderRepository.findAll(pageable)
+                .map(this::mapToDTO);
     }
 
     public Order getOrderById(Long orderId) {
@@ -126,15 +128,10 @@ public class OrderService {
         orderRepository.delete(order);
     }
 
-    public List<OrderDTO> getOrdersByUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+    public Page<OrderDTO> getOrdersByUser(User user, Pageable pageable) {
 
-        List<Order> orders = orderRepository.findByUser(user);
-
-        return orders.stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        return orderRepository.findByUser(user, pageable)
+                .map(this::mapToDTO);
     }
 
     private OrderItem mapToOrderItem(OrderItemDTO dto, Order order) {
@@ -153,7 +150,7 @@ public class OrderService {
     }
 
     private OrderDTO mapToDTO(Order order) {
-        List<OrderItemDTO> orderItemsDTO = (order.getOrderItems() != null) ? order.getOrderItems().stream()
+        List<OrderItemDTO> orderItemsDTO = order.getOrderItems() != null ? order.getOrderItems().stream()
                 .map(this::mapToOrderItemDTO)
                 .collect(Collectors.toList()) : Collections.emptyList();
 
@@ -162,63 +159,60 @@ public class OrderService {
                 order.getTracking().getTrackingNumber(),
                 null) : null;
 
-        UserDTO userDTO = null;
-        if (order.getUser() != null) {
-            userDTO = new UserDTO(
-                    order.getUser().getId(),
-                    order.getUser().getEmail(),
-                    order.getUser().getPassword(),
-                    null, null, null, null, null, null);
-        }
-
-       return new OrderDTO(
+        return new OrderDTO(
                 order.getId(),
                 order.getStatus(),
                 order.getTotalPrice(),
                 order.getTotalItems(),
                 order.isPaid(),
-                userDTO,
-                // new UserDTO(order.getUser().getId(),
-                // order.getUser().getEmail(),
-                // order.getUser().getPassword(),
-                // null,
-                // null, null, null, null, null),
                 orderItemsDTO,
                 trackingDTO);
     }
 
     private OrderItemDTO mapToOrderItemDTO(OrderItem orderItem) {
-        Product product = orderItem.getProduct();
-        
-        float discountedPrice = product.getPrice();  
-    
-        if (product.getDiscount() > 0 && product.getDiscount() <= 100) {
-            float discountMultiplier = 1 - (product.getDiscount() / 100.0f);
-            discountedPrice = product.getPrice() * discountMultiplier;
-        }
-    
-        ProductDTO productDTO = new ProductDTO(
+        ProductDTO productDTO = mapToProductDTO(orderItem.getProduct());
+
+        return new OrderItemDTO(
+                orderItem.getId(),
+                orderItem.getQuantity(),
+                null,
+                productDTO,
+                null);
+    }
+
+    private ProductDTO mapToProductDTO(Product product) {
+        return new ProductDTO(
                 product.getId(),
                 product.getName(),
                 Optional.ofNullable(product.getImageHash()),
                 product.getDescription(),
-                product.getPrice(),           
-                discountedPrice,             
+                product.getPrice(),
+                calculateDiscountedPrice(product.getPrice(), product.getDiscount()),
                 product.getStock(),
-                product.getCreatedAt(),        
-                null,                        
-                product.getDiscount()          
-        );
-    
-        return new OrderItemDTO(
-                orderItem.getId(),
-                orderItem.getQuantity(),
-                null,    
-                productDTO, 
-                null      
-        );
+                product.getCreatedAt(),
+                mapToCategoryDTO(product.getCategory()),
+                product.getDiscount());
+    }
+
+    private float calculateDiscountedPrice(float price, int discount) {
+        if (discount > 0) {
+            return price - (price * discount / 100);
+        }
+        return price;
+    }
+
+    private CategoryDTO mapToCategoryDTO(Category category) {
+    if (category == null) {
+        return null; 
     }
     
+    return new CategoryDTO(
+            category.getId(),
+            category.getName(),
+            category.getImageHash(),
+            category.isHighlights()
+    );
+}
 
     public OrderItemDTO addOrderItemToOrder(Long orderId, OrderItemDTO orderItemDTO) {
         Order order = orderRepository.findById(orderId)

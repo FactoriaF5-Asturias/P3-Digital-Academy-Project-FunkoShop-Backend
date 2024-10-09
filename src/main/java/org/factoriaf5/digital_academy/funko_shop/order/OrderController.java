@@ -1,13 +1,18 @@
 package org.factoriaf5.digital_academy.funko_shop.order;
 
+import java.security.Principal;
+
 import org.factoriaf5.digital_academy.funko_shop.order_item.OrderItemDTO;
+import org.factoriaf5.digital_academy.funko_shop.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("${api-endpoint}/orders")
@@ -23,8 +28,9 @@ public class OrderController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('admin:read')")
-    public ResponseEntity<List<OrderDTO>> getAllOrders() {
-        List<OrderDTO> orders = orderService.getAllOrders();
+    public ResponseEntity<Page<OrderDTO>> getAllOrders(
+            @PageableDefault(size = 8, sort = { "createdDate", "id" }) Pageable pageable) {
+        Page<OrderDTO> orders = orderService.getAllOrders(pageable);
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
@@ -35,8 +41,9 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderDTO> addOrder(@RequestBody OrderDTO order) {
-        OrderDTO createdOrder = orderService.addOrder(order);
+    public ResponseEntity<OrderDTO> addOrder(Principal connectedUser, @RequestBody OrderDTO order) {
+        User user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
+        OrderDTO createdOrder = orderService.addOrder(order, user.getId());
         return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
     }
 
@@ -53,13 +60,17 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<OrderDTO>> getOrdersByUser(@PathVariable Long userId) {
-        List<OrderDTO> orders = orderService.getOrdersByUser(userId);
+    public ResponseEntity<Page<OrderDTO>> getOrdersByUser(
+            Principal connectedUser,
+            @PageableDefault(size = 8, sort = { "created_at" }) Pageable pageable) {
+        User user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
+        Page<OrderDTO> orders = orderService.getOrdersByUser(user, pageable);
         return new ResponseEntity<>(orders, HttpStatus.OK);
     }
 
-     @PostMapping("/{orderId}/items")
-    public ResponseEntity<OrderItemDTO> addOrderItemToOrder(@PathVariable Long orderId, @RequestBody OrderItemDTO orderItemDTO) {
+    @PostMapping("/{orderId}/items")
+    public ResponseEntity<OrderItemDTO> addOrderItemToOrder(@PathVariable Long orderId,
+            @RequestBody OrderItemDTO orderItemDTO) {
         OrderItemDTO addedOrderItem = orderService.addOrderItemToOrder(orderId, orderItemDTO);
         return new ResponseEntity<>(addedOrderItem, HttpStatus.CREATED);
     }

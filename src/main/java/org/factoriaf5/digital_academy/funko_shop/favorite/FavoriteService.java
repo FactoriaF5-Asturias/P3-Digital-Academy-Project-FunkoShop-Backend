@@ -95,6 +95,6 @@ public class FavoriteService {
 
     public Boolean checkFavorite(Long userId, Long productId) {
         Optional<Favorite> favorite = favoriteRepository.findByUserIdAndProductId(userId, productId);
-        return favorite.isPresent();  // Retorna true si existe el registro, false si no
+        return favorite.isPresent();  
     }
 }
