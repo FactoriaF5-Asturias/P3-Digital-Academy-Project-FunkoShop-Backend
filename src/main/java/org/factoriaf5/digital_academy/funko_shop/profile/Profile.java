@@ -1,6 +1,5 @@
 package org.factoriaf5.digital_academy.funko_shop.profile;
 
-// import org.factoriaf5.digital_academy.funko_shop.account_settings.AccountSettings;
 import org.factoriaf5.digital_academy.funko_shop.address.Address;
 import org.factoriaf5.digital_academy.funko_shop.user.User;
 

@@ -1,6 +1,5 @@
 package org.factoriaf5.digital_academy.funko_shop.address;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -11,10 +10,8 @@ import java.util.List;
 @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
 public class AddressController {
 
-    @Autowired
     private final AddressService addressService;
 
-    @Autowired
     public AddressController(AddressService addressService) {
         this.addressService = addressService;
     }
